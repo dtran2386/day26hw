@@ -1,99 +1,211 @@
-var expect = require('chai').expect;
-var hof = require('../hof');
+module.exports = {
+    /**
+     * Return an object with a next() property. Each time the next function
+     * is called the value returned is one higher than the time before.
+     *
+     *  var c = hof.counter(2);
+     *  c.next(); // return 3
+     */
+    counter: function (start) {
+        var begin = start;
+        return {
+          next: function () {
+              begin = begin + 1;
+              return begin;
+            }
+        };
+    },
 
-describe('accepting and returning functions', function () {
-    it('create an object that returns a next() value', function () {
-        var c = hof.counter(2);
-        expect(c).to.be.a('object');
-        expect(c.next()).to.be.equal(3);
-
-        var d = hof.counter(11);
-        d.next();
-        d.next();
-        expect(d.next()).to.be.equal(14);
-    });
-
-    it('multiply two numbers', function () {
-        expect(hof.multiply(5)).to.be.a('function');
-        expect(hof.multiply(5)(3)).to.be.equal(15);
-        expect(hof.multiply(6)(2)).to.be.equal(12);
-    });
-
-    it('temporarily apply discounts', function () {
-        var tot = hof.total(20);
-        expect(tot.discount).to.be.a('function');
-        expect(tot.discount(0.20)).to.be.equal(16);
-        expect(tot.discount(0.50)).to.be.equal(10);
-        expect(tot.discount(1.00)).to.be.equal(0);
-    });
-
-    it('user object that validates names', function () {
-        var user = hof.user();
-        user.setName('Francis Bacon');
-        expect(user.getName()).to.be.equal('Francis Bacon');
-
-        expect(user.setName('123 hi')).to.be.equal(false);
-        expect(user.getName()).to.be.equal('Francis Bacon');
-    });
-
-    it('color generator', function () {
-        var color = hof.color(150, 200, 18);
-        color.incrRed(12);
-        color.incrGreen(30);
-        color.incrBlue(-9);
-
-        expect(color.red()).to.be.equal(162);
-        expect(color.green()).to.be.equal(230);
-        expect(color.blue()).to.be.equal(9);
-
-        color.incrRed(12);
-        color.incrGreen(1);
-        color.incrBlue(200);
-
-        expect(color.red()).to.be.equal(174);
-        expect(color.green()).to.be.equal(231);
-        expect(color.blue()).to.be.equal(209);
-    });
-
-    it('maintain lives left in a game', function () {
-        var lives = hof.lives(5);
-        lives.died();
-
-        expect(lives.left()).to.be.equal(4);
-        lives.died();
-        expect(lives.left()).to.be.equal(3);
-
-        for (var i = 0; i < 10; i++) {
-            lives.died(); // you can't decrease below zero
+    /**
+     * Return a function that accepts the value to multiply `val` by.
+     *
+     *  multiply(3)(5); // return 15
+     */
+    multiply: function (val) {
+        return function(second) {
+            return val * second;
         }
-        expect(lives.left()).to.be.equal(0);
+    },
 
-        // reset the number of lives to whatever the original
-        // value was when lives() was called.
-        lives.restart();
-        expect(lives.left()).to.be.equal(5);
-    });
+    /**
+     * Return an object with a discount() property. The discount property should
+     * accept an amount that the original price should be discounted by. This
+     * should not affect the original amount!
+     *
+     *  var tot = hof.total(20);
+     *  tot.discount(0.50); // return 10
+     *  tot.discount(0.20); // return 16
+     */
+    total: function (amount) {
+        return {
+            discount: function(second) {
+                return amount - (second * amount);
+            }
+        };
+    },
 
-    it('create a logger function that tracks message counts', function () {
-        var logger = hof.messages();
-        expect(logger.record('first message')).to.be.equal('[1] first message');
-        expect(logger.record('second message')).to.be.equal('[2] second message');
-        expect(logger.record('another message')).to.be.equal('[3] another message');
-        expect(logger.record('yet another message')).to.be.equal('[4] yet another message');
-    });
+    /**
+     * Set the name of a user. Only valid names can be provided. A `valid` name is
+     * one that matches the regex ^[A-Za-z ]+$.
+     *
+     *  var user = hof.user();
+     *  user.setName('Francis Bacon'); // return true
+     *  user.getName(); // return 'Francis Bacon'
+     *  user.setName('123 hi'); // return false
+     *  user.getName(); // return 'Francis Bacon'
+     */
+    user: function () {
+        var name = '';
+        var pattern = new RegExp('^[A-Za-z ]+$');
+        return {
+          setName: function (string) {
+              if (pattern.test(string) === true) {
+                  name = string;
+              } else {
+                  return false;
+              }
+          },
+          getName: function () {
+              return name;
+          },
+        };
+    },
 
-    it('create a pocket object that can buy and sell stuff', function () {
-        var pocket = hof.pocket(50);
-        pocket.buy(); // buy for 10 coins
-        expect(pocket.coins()).to.be.equal(40);
-        expect(pocket.trinkets()).to.be.equal(1);
+    /**
+     * Create a color object that's got six different properties: incrRed(amount), 
+     * incrGreen(amount), and incrBlue(amount) - all of which change the R, G, or B
+     * value by the specified quantity (could be negative).
+     *
+     * There should also be a red(), green(), and blue() function that return the current
+     * value for that color channel.
+     *
+     * You can't have a color value less than zero or greater than 255.
+     *
+     *  var color = hof.color(150, 200, 18);
+     *  color.incrRed(12);
+     *  color.incrGreen(30);
+     *  color.incrBlue(-9);
+     *  console.log(color.red(), color.green(), color.blue()); // 162, 230, 9
+     */
+    color: function (r, g, b) {
+        var num = r;
+        var num2 = g;
+        var num3 = b;
+        return {
+          incrRed: function(amount) {
+              num = amount + num;
+          },
+          incrGreen: function(amount) {
+              num2 = amount + num2;
+          },
+          incrBlue: function(amount) {
+              num3 = amount + num3;
+          },  
+          red: function() {
+              return num;
+          },
+          green: function() {
+              return num2;
+          },
+          blue: function() {
+              return num3;
+          },  
+        };
+    },
 
-        pocket.buy();
-        expect(pocket.coins()).to.be.equal(30);
-        expect(pocket.trinkets()).to.be.equal(2);
+    /**
+     * Track the number of lives remaining in a game.
+     *
+     *  var lives = hof.lives(5);
+     *  lives.died();
+     *  console.log(lives.left()); // 4
+     *  lives.died();
+     *  console.log(lives.left()); // 3
+     *  lives.restart();
+     *  console.log(lives.left()); // 5
+     */
+    lives: function (start) {
+        var current = start;
+        return {
+            died: function () {
+                current = current - 1;
+                if (current < 0) {
+                return 0;
+                }
+                return current;
+            },
+            left: function () {
+                if (current < 0) {
+                    return 0;
+                }
+                return current;
+            },
+            restart: function () {
+                current = start;
+            },
+        };
+    },
 
-        pocket.sell(); // sell for 5 coins
-        expect(pocket.coins()).to.be.equal(35);
-        expect(pocket.trinkets()).to.be.equal(1);
-    });
-});
+    /**
+     * Return a string that contains the 'message id' before the message text.
+     * The message ID starts at one and increments with each record.
+     *
+     *  var logger = hof.messages();
+     *  var msg = logger.record('first message');
+     *  console.log(msg); // '[1] first message'
+     *  msg = logger.record('second message');
+     *  console.log(msg); // '[2] second message'
+     */
+    messages: function () {
+        var input = '';
+        var num = 1;
+        return {
+            record: function (string) {
+                input = string;
+                return '[' + (num++) + '] ' + input;
+            },
+        };
+    },
+
+    /**
+     * Create a pocket object that can contain COINS and TRINKETS. The pocket
+     * allows users to buy() trinkets for 10 coins, or sell() trinkets for 5
+     * coins. You can also return the number of coins() or trinkets().
+     *
+     * You can't have a negative number of coins or trinkets.
+     *
+     *  var pocket = hof.pocket(50);
+     *  pocket.buy(); // buy for 10 coins
+     *  console.log(pocket.coins()); // 40
+     *  console.log(pocket.trinkets()); // 1
+     *
+     *  pocket.buy();
+     *  console.log(pocket.coins()); // 30
+     *  console.log(pocket.trinkets()); // 2
+     *
+     *  pocket.sell();
+     *  console.log(pocket.coins()); // 35
+     *  console.log(pocket.trinkets()); // 1
+     */
+    pocket: function (start) {
+       var coins = start;
+       var trinkets = 0;
+       return {
+         buy: function () {
+           coins = coins - 10;
+           return coins + (trinkets++);
+         },
+         sell: function () {
+           coins = coins + 5;
+           return coins + (trinkets--);
+         },
+         coins: function () {
+           return coins;
+         },
+         trinkets: function () {
+           return trinkets;
+         },
+       };    
+     },
+    
+};
